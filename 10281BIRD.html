@@ -9912,9 +9912,10 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                             }
                         }
                         
-                        // Enforce ground-level constraint
-                        if (this.y < canvas.height * GROUND_HEIGHT_RATIO - 10) {
-                            this.y = canvas.height * GROUND_HEIGHT_RATIO - 10;
+                        // V40: ENFORCE ground position with individual depth (like hopping)
+                        const feedingGroundY = canvas.height * GROUND_HEIGHT_RATIO + 40 + this.groundDepth;
+                        if (Math.abs(this.y - feedingGroundY) > 10) {
+                            this.y = feedingGroundY;
                             this.velocity.y = 0;
                         }
                         
@@ -10028,17 +10029,16 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                         if (!this.isWild && this.myNest && Math.random() < 0.02) {
                             this.checkNestCondition();
                         }
-                        
-                        // Very minimal movement while resting
-                        this.velocity.x *= 0.95;
-                        this.velocity.y *= 0.95;
-                        
-                        // Infrequent small adjustments
-                        if (Math.random() < 0.02) {
-                            this.applyForce({ 
-                                x: (Math.random() - 0.5) * 0.005,
-                                y: (Math.random() - 0.5) * 0.002
-                            });
+
+                        // V40: ENFORCE ground position for resting birds (they were drifting!)
+                        const restingGroundY = canvas.height * GROUND_HEIGHT_RATIO + 40 + this.groundDepth;
+                        this.y = restingGroundY;
+                        this.velocity = { x: 0, y: 0 }; // Complete stillness while resting
+                        this.acceleration = { x: 0, y: 0 };
+
+                        // Occasional subtle direction change only
+                        if (Math.random() < 0.01) {
+                            this.direction *= -1;
                         }
                         
                         // End resting after a while or if hungry
@@ -10443,8 +10443,8 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                             const waypoint = this.path[this.pathIndex];
                             const waypointDist = distance(this.x, this.y, waypoint.x, waypoint.y);
 
-                            // FIXED: Smaller reach distance for smoother ground approach
-                            const reachThreshold = this.intendToHop ? 5 : 10; // Tighter for ground landing
+                            // V40: MUCH LARGER threshold for easier ground landing (was 5px, now 30px)
+                            const reachThreshold = this.intendToHop ? 30 : 20; // Birds can land easily now!
 
                             if (waypointDist < reachThreshold) {
                                 // Reached waypoint, move to next
@@ -10457,7 +10457,7 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
 if (this.pathIndex >= this.path.length) {
     // Check if we intended to hop
     const groundTargetY = canvas.height * GROUND_HEIGHT_RATIO + 40;
-    if (this.intendToHop && Math.abs(this.y - groundTargetY) < 20) { // Tighter tolerance
+    if (this.intendToHop && Math.abs(this.y - groundTargetY) < 50) { // V40: Much more lenient (was 20px)
         // FIXED: Smooth easing to ground instead of instant positioning
         const easingSpeed = 0.3; // Gradual descent
         this.y += (groundTargetY - this.y) * easingSpeed;
@@ -10466,8 +10466,8 @@ if (this.pathIndex >= this.path.length) {
         this.velocity.x *= 0.8;
         this.velocity.y *= 0.7;
 
-        // Only transition when very close to final position
-        if (Math.abs(this.y - groundTargetY) < 2) {
+        // V40: Only transition when reasonably close (was 2px, now 15px for easy landing)
+        if (Math.abs(this.y - groundTargetY) < 15) {
             this.y = groundTargetY; // Snap to final position
             this.velocity = { x: 0, y: 0 }; // Full stop
 
@@ -10752,30 +10752,19 @@ if (this.pathIndex >= this.path.length) {
         }
     }
     
-    // Only exit hopping after extended time AND when on ground
-    // IMPORTANT: Minimum stay on ground to prevent quick slam behavior
-    const MIN_HOPPING_TIME = 60000; // At least 60 seconds (1 minute) of hopping before transitioning
-    if (this.stateTimer > Math.max(MIN_HOPPING_TIME, BIRD_STATE_DURATION.HOPPING * 0.5)) {
-        if (!this.hopData || this.hopData.phase === "ground") {
-            // Only exit if bird has been hopping for a while and is on ground
-            // Prevent quick flying→hopping→flying transitions
-            if (this.stateTimer < MIN_HOPPING_TIME) {
-                // Stay in hopping state longer
-                break;
-            }
-
-            // Exit to flying or perching (don't reset timer - let it naturally end)
-            if (Math.random() < 0.7) {
-                this.findPerch();
-                this.hopData = null; // Clear hop data
-            } else {
-                this.state = BIRD_STATES.RESTING; // Rest instead of IDLE for smoother transition
-                this.stateTimer = 0;
-                this.hopData = null; // Clear hop data
-                debugLog("Bird finished hopping, now resting");
-            }
+    // V40: Only exit hopping after FULL duration (no early exits for maximum chill)
+    if (this.stateTimer > BIRD_STATE_DURATION.HOPPING && (!this.hopData || this.hopData.phase === "ground")) {
+        // ONLY exit when on ground AND full time elapsed
+        // Exit to flying or perching (don't reset timer - let it naturally end)
+        if (Math.random() < 0.8) { // Increased from 0.7 - more likely to perch after hopping
+            this.findPerch();
+            this.hopData = null; // Clear hop data
+        } else {
+            this.state = BIRD_STATES.RESTING; // Rest instead of IDLE for smoother transition
+            this.stateTimer = 0;
+            this.hopData = null; // Clear hop data
+            debugLog("Bird finished hopping, now resting");
         }
-        // If mid-hop, let it finish the current hop naturally without resetting timer
     }
     break;
 
@@ -10815,9 +10804,10 @@ if (this.pathIndex >= this.path.length) {
                             this.pecking = this.peckAnimationPhase > 0;
                         }
 
-                        // Stay on ground
-                        this.y = canvas.height * GROUND_HEIGHT_RATIO;
-                        this.velocity.y = 0;
+                        // V40: Stay on ground with individual depth (like hopping/feeding)
+                        const peckingGroundY = canvas.height * GROUND_HEIGHT_RATIO + 40 + this.groundDepth;
+                        this.y = peckingGroundY;
+                        this.velocity = { x: 0, y: 0 }; // Complete stillness while pecking
 
                         // Check if should make food call
                         const nearbyFood = foodItems.find(f =>
