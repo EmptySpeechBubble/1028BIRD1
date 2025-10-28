@@ -1904,7 +1904,7 @@ let rainsCompleted = 0; // Track number of completed rain events (for pond forma
         const MAX_BIRDS = 50;
         const MAX_FOOD = 50; // REDUCED from 70 - encourage consumption
         const MAX_SPEED = 5; // Maximum speed for moving entities
-        const MIN_STATE_DURATION = 20000; // Minimum 20 seconds to remain in a state (ensures behaviors are visible)
+        const MIN_STATE_DURATION = 3000; // Minimum 3 seconds to prevent rapid toggling (BIRD_STATE_DURATION handles visibility)
         const MAX_BIRD_POOPS = 10;
         const MAX_PUDDLES = 13; // Limit puddles for performance
         const MAX_WORMS = 30; // REDUCED from 45 - encourage consumption
@@ -9886,8 +9886,8 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                             this.velocity.y = 0;
                         }
                         
-                        // End feeding state after a while
-                        if (this.stateTimer > 8000 || this.hunger < 100) {
+                        // End feeding state after configured duration
+                        if (this.stateTimer > BIRD_STATE_DURATION.FEEDING || this.hunger < 100) {
                             // REALISTIC: Birds often drink after eating dry food
                             if ((puddles.length > 0 || ponds.length > 0) && Math.random() < 0.7) {
                                 this.state = BIRD_STATES.DRINKING;
@@ -10795,8 +10795,8 @@ if (this.pathIndex >= this.path.length) {
                             this.makeFoodCall(nearbyFood.x, nearbyFood.y);
                         }
 
-                        // Chance to stop pecking
-                        if (this.stateTimer > 5000 || this.hunger < 100) {
+                        // Chance to stop pecking (use configured duration)
+                        if (this.stateTimer > BIRD_STATE_DURATION.PECKING || this.hunger < 100) {
                             this.state = BIRD_STATES.FLYING;
                             this.isOnGround = false;
                         }
