@@ -542,7 +542,7 @@
                 <li><strong>Mushroom Clusters:</strong> Non-magic mushrooms spawn near trees after rain (40% chance), age out after 5 minutes</li>
                 <li><strong>Fallen Branches:</strong> Squirrels occasionally knock branches from trees while foraging. These become available twigs!</li>
                 <li><strong>Pond Drinking:</strong> Birds visit ponds to drink water, not just to bathe</li>
-                <li><strong>Rare Color Variants:</strong> 5% of birds spawn with special colors: Albino, Melanistic, Golden, Azure, Rose, or Emerald!</li>
+                <li><strong>Rare Color Variants:</strong> 1.5% of birds spawn with special colors: Albino, Melanistic, Golden, Azure, Rose, or Emerald! Extremely rare combo birds (~0.3%) combine two colors!</li>
             </ul>
         </details>
 
@@ -1713,14 +1713,14 @@ let territorialDisputes = []; // {bird1, bird2, location, startTime}
 
 // Constants for new behaviors
 const SENTINEL_ROTATION_INTERVAL = 25000; // 25 seconds
-const MOBBING_DURATION = 12000; // 12 seconds
+const MOBBING_DURATION = 30000; // 30 seconds (updated to match BIRD_STATE_DURATION)
 const MOBBING_DIVE_FREQUENCY = 2000; // Dive every 2 seconds
 const GROUND_ESCAPE_DELAY = 250; // 250ms delay for ground birds
 const PECKING_INTERVAL_SOLO = 800; // Solo bird pecking speed
 const PECKING_INTERVAL_GROUP = 500; // Group feeding pecking speed
 const FLOCK_DISTANCE = 200; // Birds within this distance are considered flockmates
 const CONTACT_CALL_DISTANCE = 150; // Call when flockmates are this far
-const TERRITORIAL_DISPLAY_DURATION = 3000; // 3 seconds
+const TERRITORIAL_DISPLAY_DURATION = 20000; // 20 seconds (updated to match BIRD_STATE_DURATION)
 const FEAR_OVERRIDE_HUNGER = 600; // Hunger level that overrides fear
 let currentHour = 9; // Track the hour of day (0-23)
 let lastHourlyUpdate = 0; // Track when we last updated the hourly activities
@@ -1904,7 +1904,7 @@ let rainsCompleted = 0; // Track number of completed rain events (for pond forma
         const MAX_BIRDS = 50;
         const MAX_FOOD = 50; // REDUCED from 70 - encourage consumption
         const MAX_SPEED = 5; // Maximum speed for moving entities
-        const MIN_STATE_DURATION = 1000; // Minimum time to remain in a state (to prevent rapid toggling)
+        const MIN_STATE_DURATION = 20000; // Minimum 20 seconds to remain in a state (ensures behaviors are visible)
         const MAX_BIRD_POOPS = 10;
         const MAX_PUDDLES = 13; // Limit puddles for performance
         const MAX_WORMS = 30; // REDUCED from 45 - encourage consumption
@@ -1943,33 +1943,33 @@ let rainsCompleted = 0; // Track number of completed rain events (for pond forma
     HOPPING: 0.70      // Increased even more for much more ground hopping
         };
         
-        // V26: Increased state durations for more stable perching behaviors
+        // V39: MAJOR BEHAVIOR DURATION OVERHAUL - All behaviors last 20-30+ seconds for visibility
         const BIRD_STATE_DURATION = {
-            IDLE: 50000,        // Increased from 40000
-    PERCHED: 240000,    // Reduced to 4 minutes (below baby starvation time)
-    FLEEING: 5000,      // Unchanged
-    SHELTERING: 25000,  // Unchanged
-    RESTING: 75000,     // Increased from 60000
-    BATHING: 25000,     // Unchanged
-    FLYING: 10000,       // Reduced from 15000
-    HOPPING: 90000,     // Increased from 60000 - more ground chill time (1.5 minutes)
-    // Missing states - consolidated for consistency
-    HUNTING: 7000,      // 7 seconds to hunt target
-    COLLECTING: 7000,   // 7 seconds to collect twig
-    BUILDING: 10000,    // 10 seconds to build nest
-    BUILDING_BIRDHOUSE: 10000, // 10 seconds to build birdhouse
-    FEEDING: 8000,      // 8 seconds foraging on ground
-    PECKING: 5000,      // 5 seconds pecking behavior
-    MOBBING: 12000,     // 12 seconds harassing predator
-    TERRITORIAL_DISPLAY: 3000, // 3 seconds dominance display
-    FLEEING_GROUND: 250, // 0.25 seconds ground escape delay
-    SENTINEL: 15000,    // 15 seconds standing guard
-    // Phase 1 - Essential Realism Durations
-    PREENING: 15000,    // 15 seconds - grooming session
-    DRINKING: 3000,     // 3 seconds - quick drink
-    ALARM: 800,         // 0.8 seconds - brief freeze before action
+            IDLE: 60000,        // 1 minute - calm idle time
+    PERCHED: 360000,    // 6 minutes - birds spend most time perching peacefully
+    FLEEING: 8000,      // 8 seconds - fleeing from danger
+    SHELTERING: 45000,  // 45 seconds - taking shelter
+    RESTING: 120000,    // 2 minutes - ground resting
+    BATHING: 30000,     // 30 seconds - bathing behavior
+    FLYING: 5000,       // 5 seconds - REDUCED to minimize exhausting flying
+    HOPPING: 120000,    // 2 minutes - extended ground hopping (visible behavior)
+    // Activity states
+    HUNTING: 20000,     // 20 seconds to hunt target
+    COLLECTING: 20000,  // 20 seconds to collect twig
+    BUILDING: 25000,    // 25 seconds to build nest
+    BUILDING_BIRDHOUSE: 25000, // 25 seconds to build birdhouse
+    FEEDING: 30000,     // 30 seconds foraging on ground
+    PECKING: 20000,     // 20 seconds pecking behavior
+    MOBBING: 30000,     // 30 seconds harassing predator (more visible)
+    TERRITORIAL_DISPLAY: 20000, // 20 seconds dominance display (more visible)
+    FLEEING_GROUND: 500, // 0.5 seconds ground escape delay
+    SENTINEL: 45000,    // 45 seconds standing guard (more visible)
+    // Essential behaviors
+    PREENING: 30000,    // 30 seconds - grooming session
+    DRINKING: 8000,     // 8 seconds - drinking
+    ALARM: 1500,        // 1.5 seconds - brief freeze before action
     NEST_SITTING: 180000, // 3 minutes - sitting on nest
-    SLEEPING: 60000     // 60 seconds - sleeping (30-40 sec average with variation)
+    SLEEPING: 150000    // 2.5 minutes - sleeping (much longer, more visible at night)
         };
         
         // Morning food spawn rates
@@ -6928,6 +6928,17 @@ function drawWorms() {
             constructor(x, trunkWidth, trunkHeight, leafRadius, hasBranches = false) {
                 this.id = Math.random().toString(36).substr(2, 9); // Unique ID for naming
                 this.x = x;
+
+                // V39: Rare tall tree variant (2% chance - 33% taller!)
+                this.isTallVariant = Math.random() < 0.02;
+                if (this.isTallVariant) {
+                    trunkHeight *= 1.33; // 33% taller
+                    trunkWidth *= 1.15; // Slightly thicker trunk
+                    leafRadius *= 1.2; // Larger canopy
+                    hasBranches = true; // Always has branches
+                    debugLog(`🌲 Rare TALL tree spawned at (${x})! Height: ${trunkHeight.toFixed(0)}`);
+                }
+
                 this.trunkWidth = trunkWidth;
                 this.trunkHeight = trunkHeight;
                 this.leafRadius = leafRadius;
@@ -6954,7 +6965,9 @@ function drawWorms() {
                 }
                 
                 if (hasBranches) {
-                    const branchCount = Math.floor(1 + Math.random() * 3);
+                    // Tall trees get more branches
+                    const baseBranchCount = this.isTallVariant ? 3 : 1;
+                    const branchCount = Math.floor(baseBranchCount + Math.random() * 3);
                     for (let i = 0; i < branchCount; i++) {
                         // Determine which side the branch comes out on
                         const isRightSide = Math.random() > 0.5;
@@ -7518,8 +7531,8 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
             constructor(isWild = false, birdTypeOverride = null, startX = null, startY = null) {
         this.birdType = birdTypeOverride || BIRD_TYPES[Math.floor(Math.random() * BIRD_TYPES.length)];
 
-        // Rare color variant system (5% chance for special colors)
-        this.isRareVariant = Math.random() < 0.05;
+        // Rare color variant system (1.5% chance - MUCH RARER for special colors)
+        this.isRareVariant = Math.random() < 0.015;
         if (this.isRareVariant) {
             const rareVariants = [
                 { name: 'Albino', bodyColor: '#FFFFFF', wingColor: '#F5F5F5' },
@@ -7530,7 +7543,7 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
                 { name: 'Emerald', bodyColor: '#50C878', wingColor: '#2E8B57' }
             ];
 
-            // FIXED: Super rare combo birds (20% of rare birds = 1% overall)
+            // FIXED: Super rare combo birds (20% of rare birds = 0.3% overall)
             const isCombo = Math.random() < 0.2;
             if (isCombo) {
                 // Mix body from one variant, wings/head from another
@@ -7546,10 +7559,14 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
                     wingColor: wingVariant.wingColor
                 };
                 debugLog(`✨ SUPER RARE ${this.rareVariant.name} ${this.birdType.name} spawned!`);
+                // Add diary entry for super rare bird
+                addDiaryEntry(`A stunning ${this.rareVariant.name} ${this.birdType.name} has joined the garden! This unique bird is truly one of a kind.`, 'rare');
             } else {
                 // Standard rare variant
                 this.rareVariant = rareVariants[Math.floor(Math.random() * rareVariants.length)];
                 debugLog(`Rare ${this.rareVariant.name} ${this.birdType.name} spawned!`);
+                // Add diary entry for rare bird
+                addDiaryEntry(`A rare ${this.rareVariant.name} ${this.birdType.name} has joined the garden!`, 'rare');
             }
         }
 
@@ -9038,7 +9055,23 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
 
 
                         // Check for state transitions
-                        if (this.hunger > HUNGER_CRITICAL_THRESHOLD) {
+                        // PRIORITY: Check for player-added food FIRST (even when not hungry)
+                        const playerFood = foodItems.find(f => f.playerAdded &&
+                            distance(this.x, this.y, f.x, f.y) < 400 &&
+                            !this.isDangerZone(f.x, f.y));
+
+                        if (playerFood && Math.random() < 0.80) {
+                            // 80% chance to investigate player food even when not hungry
+                            this.target = {
+                                type: 'food',
+                                food: playerFood,
+                                x: playerFood.x,
+                                y: playerFood.y
+                            };
+                            this.state = BIRD_STATES.HUNTING;
+                            this.stateTimer = 0;
+                            debugLog(`Bird investigating PLAYER-ADDED food even though not hungry!`);
+                        } else if (this.hunger > HUNGER_CRITICAL_THRESHOLD) {
                             // Hungry - go find food
                             this.findFoodSource();
                         } else if (this.stateTimer > Math.max(MIN_STATE_DURATION, BIRD_STATE_DURATION.IDLE) || Math.random() < 0.01) {
@@ -9230,6 +9263,26 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                                 this.state = BIRD_STATES.SLEEPING;
                                 this.stateTimer = 0;
                                 debugLog(`${getBirdName(this)} fell asleep on perch`);
+                                break;
+                            }
+
+                            // PRIORITY: Check for player-added food FIRST (even when not hungry)
+                            const playerFoodFromPerch = foodItems.find(f => f.playerAdded &&
+                                distance(this.x, this.y, f.x, f.y) < 400 &&
+                                !this.isDangerZone(f.x, f.y));
+
+                            if (playerFoodFromPerch && Math.random() < 0.80) {
+                                // 80% chance to leave perch for player food even when not hungry
+                                this.target = {
+                                    type: 'food',
+                                    food: playerFoodFromPerch,
+                                    x: playerFoodFromPerch.x,
+                                    y: playerFoodFromPerch.y
+                                };
+                                this.state = BIRD_STATES.HUNTING;
+                                this.stateTimer = 0;
+                                this.perchTarget = null;
+                                debugLog(`Bird leaving perch to investigate PLAYER-ADDED food!`);
                                 break;
                             }
 
@@ -10669,7 +10722,7 @@ if (this.pathIndex >= this.path.length) {
     
     // Only exit hopping after extended time AND when on ground
     // IMPORTANT: Minimum stay on ground to prevent quick slam behavior
-    const MIN_HOPPING_TIME = 30000; // At least 30 seconds of hopping before transitioning
+    const MIN_HOPPING_TIME = 60000; // At least 60 seconds (1 minute) of hopping before transitioning
     if (this.stateTimer > Math.max(MIN_HOPPING_TIME, BIRD_STATE_DURATION.HOPPING * 0.5)) {
         if (!this.hopData || this.hopData.phase === "ground") {
             // Only exit if bird has been hopping for a while and is on ground
@@ -16541,7 +16594,7 @@ function spawnNightWorms() {
         for (let i = 0; i < clusterSize; i++) {
             if (worms.length < MAX_WORMS) {
                 const x = baseX + (Math.random() - 0.5) * 40; // More spread out
-                const y = baseY + (Math.random() - 0.5) * 15; // This can make worms go above ground
+                const y = Math.max(canvas.height * GROUND_HEIGHT_RATIO, baseY + (Math.random() - 0.5) * 15); // Keep worms at or below ground level
                 
                 worms.push({
                     x: x,
@@ -17333,15 +17386,25 @@ function spawnOwls() {
             }
         }
 
-        // V26: Wind chime playback with adjusted timing
+        // V39: Wind chime playback - ONLY plays when wind chimes are visible on screen
         function playWindChimes() {
     if (!windChimeEnabled) return;
 
+    // CRITICAL FIX: Only play wind chimes if at least one is visible on screen
+    const hasVisibleChime = windChimes.some(chime =>
+        chime.x >= -100 && chime.x <= canvas.width + 100
+    );
+
+    if (!hasVisibleChime) {
+        debugLog("No wind chimes visible on screen - not playing audio");
+        return;
+    }
+
     if (audioContext && audioContext.state === 'suspended') audioContext.resume();
-    
+
     // Initialize audio context if needed
     if (!audioContext) initializeAudio();
-    
+
     // IMPORTANT FIX: Check if audio context is suspended and resume it
     if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume().then(() => {
@@ -17350,7 +17413,7 @@ function spawnOwls() {
             console.error("Error resuming audio context:", err);
         });
     }
-    
+
     // Update wind chime state
     const now = Date.now();
     
@@ -17405,10 +17468,21 @@ function spawnOwls() {
             // But we'll only actually play a chime when it's time
             const checkNow = Date.now();
             if (checkNow - lastWindChimeTime > 15000 + (Math.random() * 5000)) {
+                // CRITICAL: Check if wind chime is visible before playing
+                const hasVisibleChime = windChimes.some(chime =>
+                    chime.x >= -100 && chime.x <= canvas.width + 100
+                );
+
+                if (!hasVisibleChime) {
+                    debugLog("Wind chime not visible - skipping chime sound");
+                    lastWindChimeTime = checkNow; // Update time to prevent rapid checking
+                    return;
+                }
+
                 debugLog("Wind chime timer triggered - time to play");
                 // Don't call playWindChimes() recursively - that could stack
                 // Instead, directly play the chime sounds here
-                
+
                 // Notes for wind chimes (pentatonic scale for more pleasant sound)
                 const notes = ['C', 'D', 'E', 'G', 'A'];
                 
@@ -18297,23 +18371,6 @@ if (mushroomMode) {
     // Check for magic mushroom spawning
     checkForMagicMushroom();
 
-
-
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Update day/night cycle
-    updateDayNightCycle(deltaTime);
-
-    // Update rainbow if active
-    updateRainbow(deltaTime);
-    
-    // Check for conditions for rainbow
-    if (wasRaining && !isRaining) {
-        checkForRainbow();
-    }
-    
     // Check for scarecrow creation
     checkForScarecrow();
 
@@ -18758,9 +18815,10 @@ function takeScreenshot() {
 function drawFullScene() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw all elements in the correct order
-    drawBackground();
+    drawSky();
+    drawGround();
     
     if (rainbowVisible) {
         drawRainbow();
