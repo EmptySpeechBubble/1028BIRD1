@@ -7233,24 +7233,56 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
                     });
                 }
                 
-                // Add positions in the leafy area (top of tree)
+                // Add MANY positions in the leafy area (entire canopy coverage)
                 const leafY = this.y - this.trunkHeight * this.scale - this.leafRadius * 0.5 * this.scale;
-                
-                // Create a circular distribution in the leafy area
-                for (let i = 0; i < 5; i++) {
-                    const angle = (i / 5) * Math.PI * 2;
-                    const distance = this.leafRadius * 0.6 * this.scale;
-                    
-                    const perchX = this.x + Math.cos(angle) * distance;
-                    const perchY = leafY + Math.sin(angle) * distance * 0.5; // Flatten the circle a bit
-                    
+
+                // Create multiple rings of perch spots in the leafy canopy
+                // Inner ring (near trunk)
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const distance = this.leafRadius * 0.3 * this.scale;
+
                     positions.push({
-                        x: perchX,
-                        y: perchY,
+                        x: this.x + Math.cos(angle) * distance,
+                        y: leafY + Math.sin(angle) * distance * 0.4,
                         tree: this,
                         inLeaves: true
                     });
                 }
+
+                // Middle ring
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const distance = this.leafRadius * 0.55 * this.scale;
+
+                    positions.push({
+                        x: this.x + Math.cos(angle) * distance,
+                        y: leafY + Math.sin(angle) * distance * 0.45,
+                        tree: this,
+                        inLeaves: true
+                    });
+                }
+
+                // Outer ring (edge of canopy)
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2;
+                    const distance = this.leafRadius * 0.75 * this.scale;
+
+                    positions.push({
+                        x: this.x + Math.cos(angle) * distance,
+                        y: leafY + Math.sin(angle) * distance * 0.5,
+                        tree: this,
+                        inLeaves: true
+                    });
+                }
+
+                // Top center (classic tree-top perch)
+                positions.push({
+                    x: this.x,
+                    y: leafY,
+                    tree: this,
+                    inLeaves: true
+                });
                 
                 // Add position at the very top
                 positions.push({
@@ -7760,8 +7792,8 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
                     return;
                 }
                 
-                // V26: Reduced chance to skip perching for more perching overall
-                if (Math.random() < 0.03) { // 8% chance to skip perching (reduced from 15%)
+                // V40: MINIMAL chance to skip perching - birds should perch!
+                if (Math.random() < 0.005) { // 0.5% chance to skip perching - almost never!
                     this.state = BIRD_STATES.FLYING;
                     this.stateTimer = 0;
                     
@@ -7819,12 +7851,11 @@ if (timeOfDay < 1 && Math.random() < 0.001) {
                 const problemXCoordinates = [100, 928, 888, 904, 0, canvas.width, 882, 877, 864, 873, 900, 866, 887, 859];
                 const safeMargin = 60;
                 
-                validPerches = validPerches.filter(perch => 
+                validPerches = validPerches.filter(perch =>
                     !problemXCoordinates.some(x => Math.abs(perch.x - x) < safeMargin)
                 );
-                
-                // V26: Reduced random rejection for more consistent perching
-                validPerches = validPerches.filter(() => Math.random() < 0.85); // 15% chance to reject any perch (changed from 30%)
+
+                // V40: REMOVED random rejection filter - birds should use ALL valid perches for maximum calm behavior
                 
                 // Safety check - if no valid perches after filtering, fly
                 if (validPerches.length === 0) {
@@ -9074,7 +9105,7 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                         } else if (this.hunger > HUNGER_CRITICAL_THRESHOLD) {
                             // Hungry - go find food
                             this.findFoodSource();
-                        } else if (this.stateTimer > Math.max(MIN_STATE_DURATION, BIRD_STATE_DURATION.IDLE) || Math.random() < 0.01) {
+                        } else if (this.stateTimer > Math.max(MIN_STATE_DURATION, BIRD_STATE_DURATION.IDLE) || Math.random() < 0.0001) { // V40: Reduced random transitions for calmness
                             // Transition to another state
                             const r = Math.random();
 
@@ -9169,8 +9200,9 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                         
                         // Calculate distance to perch target
                         const perchDist = distance(this.x, this.y, this.perchTarget.x, this.perchTarget.y);
-                        
-                        if (perchDist < 5) {
+
+                        // V40: Much larger threshold for easier perching (was 5, now 20)
+                        if (perchDist < 20) {
                             // Bird is perched, stop all movement
                             this.velocity = { x: 0, y: 0 };
                             this.acceleration = { x: 0, y: 0 };
@@ -9288,7 +9320,7 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
 
                             if (this.stateTimer > BIRD_STATE_DURATION.PERCHED ||
                                 this.hunger > HUNGER_CRITICAL_THRESHOLD - 50 ||
-                                Math.random() < 0.002) { // Reduced chance to leave perch early
+                                Math.random() < 0.0001) { // V40: TINY chance to leave perch early - birds need chill!
 
                                 // Decide what to do next
                                 if (this.hunger > HUNGER_CRITICAL_THRESHOLD - 50) {
