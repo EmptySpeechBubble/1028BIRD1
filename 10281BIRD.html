@@ -6497,21 +6497,21 @@ function resetStuckBirds() {
     
     for (let i = 0; i < birds.length && stuckBirdsFixed < maxFixesPerFrame; i++) {
         const bird = birds[i];
-        
+
+        // V40 CRITICAL FIX: Define stationary state check at loop level for reuse
+        const isStationaryState = bird.state === BIRD_STATES.PERCHED ||
+                                 bird.state === BIRD_STATES.RESTING ||
+                                 bird.state === BIRD_STATES.HOPPING ||
+                                 bird.state === BIRD_STATES.FEEDING ||
+                                 bird.state === BIRD_STATES.PECKING ||
+                                 bird.state === BIRD_STATES.SLEEPING;
+
         // Initialize or update last position tracking
         if (!bird.lastPosition) {
             bird.lastPosition = { x: bird.x, y: bird.y };
             bird.stuckTime = 0;
         } else {
             const dist = distance(bird.x, bird.y, bird.lastPosition.x, bird.lastPosition.y);
-
-            // V40 CRITICAL FIX: Exclude ALL stationary states from stuck detection!
-            const isStationaryState = bird.state === BIRD_STATES.PERCHED ||
-                                     bird.state === BIRD_STATES.RESTING ||
-                                     bird.state === BIRD_STATES.HOPPING ||
-                                     bird.state === BIRD_STATES.FEEDING ||
-                                     bird.state === BIRD_STATES.PECKING ||
-                                     bird.state === BIRD_STATES.SLEEPING;
 
             // Check if bird is stuck (not moving)
             if (dist < 1 && !isStationaryState) {
