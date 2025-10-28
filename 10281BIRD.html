@@ -6504,9 +6504,17 @@ function resetStuckBirds() {
             bird.stuckTime = 0;
         } else {
             const dist = distance(bird.x, bird.y, bird.lastPosition.x, bird.lastPosition.y);
-            
+
+            // V40 CRITICAL FIX: Exclude ALL stationary states from stuck detection!
+            const isStationaryState = bird.state === BIRD_STATES.PERCHED ||
+                                     bird.state === BIRD_STATES.RESTING ||
+                                     bird.state === BIRD_STATES.HOPPING ||
+                                     bird.state === BIRD_STATES.FEEDING ||
+                                     bird.state === BIRD_STATES.PECKING ||
+                                     bird.state === BIRD_STATES.SLEEPING;
+
             // Check if bird is stuck (not moving)
-            if (dist < 1 && bird.state !== BIRD_STATES.PERCHED && bird.state !== BIRD_STATES.RESTING) {
+            if (dist < 1 && !isStationaryState) {
                 bird.stuckTime = (bird.stuckTime || 0) + 16;
                 
                 // Special treatment for off-screen birds
@@ -6569,10 +6577,8 @@ function resetStuckBirds() {
         // TREE STUCK DETECTION - ADD THIS SECTION
         // Only check some birds each frame for performance (10% chance)
         if (Math.random() < 0.1) {
-            // Skip birds that are intentionally perched or building
-            if (bird.state !== BIRD_STATES.PERCHED && 
-                bird.state !== BIRD_STATES.BUILDING &&
-                bird.state !== BIRD_STATES.RESTING) {
+            // V40 CRITICAL FIX: Skip ALL stationary states (not just perched/building/resting)
+            if (!isStationaryState && bird.state !== BIRD_STATES.BUILDING) {
                 
                 try {
                     // Check if the bird is between two tree trunks
@@ -10435,14 +10441,16 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                                 debugLog(`Bird choosing to land under tree for ground rest`);
                             }
 
+                            // V40 CRITICAL FIX: Include groundDepth in target so it matches hopping state!
+                            const targetGroundY = groundY + 40 + this.groundDepth;
                             this.path = [
                                 { x: this.x, y: this.y },
-                                { x: landX, y: groundY + 40 } // Increased from +20 to +40
+                                { x: landX, y: targetGroundY }
                             ];
                             this.pathIndex = 0;
                             this.intendToHop = true;
                             this.hopData = null;
-                            debugLog(`Bird landing on ground for calm behavior at (${landX}, ${groundY + 40})`);
+                            debugLog(`Bird landing on ground for calm behavior at (${landX}, ${targetGroundY})`);
                         }
 
                         // If we have a path, follow it
@@ -10463,7 +10471,8 @@ if ((isRaining || timeOfDay >= 1) && Math.random() < 0.4) { // 40% chance to see
                                // If reached final waypoint, clear path
 if (this.pathIndex >= this.path.length) {
     // Check if we intended to hop
-    const groundTargetY = canvas.height * GROUND_HEIGHT_RATIO + 40;
+    // V40 CRITICAL FIX: Include groundDepth to match landing target and hopping state!
+    const groundTargetY = canvas.height * GROUND_HEIGHT_RATIO + 40 + this.groundDepth;
     if (this.intendToHop && Math.abs(this.y - groundTargetY) < 50) { // V40: Much more lenient (was 20px)
         // FIXED: Smooth easing to ground instead of instant positioning
         const easingSpeed = 0.3; // Gradual descent
